@@ -1,2 +1,2 @@
-command-application
+console-application
 ===================
