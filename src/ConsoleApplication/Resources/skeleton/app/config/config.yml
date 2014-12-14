@@ -1,8 +1,1 @@
-config:
-    parameter_1:
-        sub_parameter_1:
-            - 'test1'
-            - 'test2'
-            - { sss: %parameter_1% }
-        sub_parameter_2: %parameter_2%
-        sub_parameter_3: %parameter_3%
+config: ~
