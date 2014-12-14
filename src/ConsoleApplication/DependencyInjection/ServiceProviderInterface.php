@@ -15,6 +15,10 @@ use ConsoleApplication\Exception\ConfigurationException;
 
 interface ServiceProviderInterface
 {
+    /*------------------------------------------------------------------------*\
+    | Public methods                                                           |
+    \*------------------------------------------------------------------------*/
+
     /**
      * Register a service provider in the given container
      *

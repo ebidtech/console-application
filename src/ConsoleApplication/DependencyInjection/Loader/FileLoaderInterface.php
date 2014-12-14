@@ -11,7 +11,7 @@
 
 namespace ConsoleApplication\DependencyInjection\Loader;
 
-use ConsoleApplication\DependencyInjection\Bag\BagInterface;
+use ConsoleApplication\Bag\BagInterface;
 use ConsoleApplication\Exception\ConfigurationException;
 use ConsoleApplication\Exception\FileNotFoundException;
 

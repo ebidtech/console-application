@@ -13,6 +13,10 @@ namespace ConsoleApplication\Exception;
 
 class ConfigurationException extends RuntimeException
 {
+    /*------------------------------------------------------------------------*\
+    | Public static methods                                                    |
+    \*------------------------------------------------------------------------*/
+
     /**
      * Configuration file root not found exception
      *

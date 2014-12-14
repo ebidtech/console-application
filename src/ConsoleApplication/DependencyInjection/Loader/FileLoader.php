@@ -11,7 +11,7 @@
 
 namespace ConsoleApplication\DependencyInjection\Loader;
 
-use ConsoleApplication\DependencyInjection\Bag\BagInterface;
+use ConsoleApplication\Bag\BagInterface;
 use ConsoleApplication\Exception\ConfigurationException;
 use ConsoleApplication\Exception\FileNotFoundException;
 use Symfony\Component\Yaml\Yaml;
@@ -74,7 +74,7 @@ class FileLoader implements FileLoaderInterface
         }
 
         // Load values to the bag and return it.
-        return $this->loadToBag($bag, is_array($config[$root]) ?: array(), $recursive);
+        return $this->loadToBag($bag, is_array($config[$root]) ? $config[$root] : array(), $recursive);
     }
 
     /**
@@ -91,18 +91,25 @@ class FileLoader implements FileLoaderInterface
     {
         // Iterate every bag key.
         foreach ($bag->keys() as $key) {
+            // Get value and placeholder.
             $value = $bag->get($key);
-            $matches = array();
+            $placeholder = $this->getPlaceholder($value);
 
-            // Checks if the config is a placeholder.
-            if (preg_match(self::PLACEHOLDER_REGEX, $value, $matches) > 0) {
-                // Checks if the parameter exists, otherwise throw an exception.
-                if (!($parameters->has($matches[0]))) {
-                    throw ConfigurationException::configurationParameterNotFoundException($matches[0]);
+            // Resolve directly.
+            if (is_string($placeholder)) {
+                if (!($parameters->has($placeholder))) {
+                    throw ConfigurationException::configurationParameterNotFoundException($placeholder);
                 }
 
-                // Set the parameter value.
-                $bag->set($key, $matches[0]);
+                // Set parameter.
+                $bag->set($key, $parameters->get($placeholder));
+                continue;
+            }
+
+            // Resolve recursively as array.
+            if (is_array($value)) {
+                $bag->set($key, $this->resolveParametersRecursively($value, $parameters));
+                continue;
             }
         }
 
@@ -112,6 +119,42 @@ class FileLoader implements FileLoaderInterface
     /*------------------------------------------------------------------------*\
     | Private methods                                                          |
     \*------------------------------------------------------------------------*/
+
+    /**
+     * Resolves parameters in an array using a bag of parameters recursively
+     *
+     * @param array        $values
+     * @param BagInterface $parameters
+     *
+     * @return array
+     *
+     * @throws ConfigurationException
+     */
+    private function resolveParametersRecursively(array $values, BagInterface $parameters)
+    {
+        foreach ($values as $key => &$value) {
+            $placeholder = $this->getPlaceholder($value);
+
+            // Resolve directly.
+            if (is_string($placeholder)) {
+                if (!($parameters->has($placeholder))) {
+                    throw ConfigurationException::configurationParameterNotFoundException($placeholder);
+                }
+
+                // Set parameter.
+                $values[$key] = $parameters->get($placeholder);
+                continue;
+            }
+
+            // Resolve recursively as array.
+            if (is_array($value)) {
+                $values[$key] = $this->resolveParametersRecursively($value, $parameters);
+                continue;
+            }
+        }
+
+        return $values;
+    }
 
     /**
      * Loads values to a bag
@@ -127,11 +170,12 @@ class FileLoader implements FileLoaderInterface
     {
         // Iterate every value.
         foreach ($values as $key => &$value) {
+            $key = $prefix === null ? $key : sprintf('%s.%s', $prefix, $key);
+
             // Recursively set values in bag.
-            if (is_array($value) && $recursive === true) {
+            if (is_array($value) && $this->isAssociativeArray($value) && $recursive === true) {
                 // Calculate prefix and call method recursively.
-                $prefix = $prefix === null ? $key : sprintf('%s.%s', $prefix, $key);
-                $this->loadToBag($bag, $value, $recursive, $prefix);
+                $this->loadToBag($bag, $value, $recursive, $key);
                 continue;
             }
 
@@ -141,5 +185,41 @@ class FileLoader implements FileLoaderInterface
 
         // Return the bag.
         return $bag;
+    }
+
+
+    /**
+     * Checks if an array is associative (a non associative array
+     * has only numeric, ordered and sequential keys starting at 0)
+     *
+     * @param array $array
+     * @return boolean
+     */
+    private function isAssociativeArray(array $array)
+    {
+        return ($array !== array_values($array));
+    }
+
+    /**
+     * Retrieve the placeholder name or false in case there is no placeholder
+     *
+     * @param string $value
+     *
+     * @return string|false
+     */
+    private function getPlaceholder($value)
+    {
+        // Placeholders can only be strings.
+        if (!is_string(($value))) {
+            return false;
+        }
+        $matches = array();
+
+        // Check if is placeholder.
+        if (preg_match(self::PLACEHOLDER_REGEX, $value, $matches) > 0) {
+            return $matches[0];
+        }
+
+        return false;
     }
 }

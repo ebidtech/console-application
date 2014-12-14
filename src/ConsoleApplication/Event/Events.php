@@ -36,4 +36,14 @@ final class Events
      * @const string
      */
     const POST_INITIALIZE = 'post_initialize';
+
+    /**
+     * @const string
+     */
+    const PRE_RUN = 'pre_run';
+
+    /**
+     * @const string
+     */
+    const POST_RUN = 'post_run';
 }

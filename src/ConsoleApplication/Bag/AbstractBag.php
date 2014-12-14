@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace ConsoleApplication\DependencyInjection\Bag;
+namespace ConsoleApplication\Bag;
 
 use ConsoleApplication\DependencyInjection\Container;
 use ConsoleApplication\Exception\ResourceNotFoundException;
@@ -92,6 +92,24 @@ abstract class AbstractBag implements BagInterface
     }
 
     /**
+     * Remove a value from the bag
+     *
+     * @param string $key
+     *
+     * @return AbstractBag
+     */
+    public function delete($key)
+    {
+        // Return the key if it exists.
+        if (array_key_exists($key, $this->keys)) {
+            unset($this->keys[$key]);
+            unset($this->container[$this->generateKey($key)]);
+        }
+
+        return $this;
+    }
+
+    /**
      * Checks if a value exists
      *
      * @param string $key
@@ -113,6 +131,48 @@ abstract class AbstractBag implements BagInterface
         return array_keys($this->keys);
     }
 
+    /**
+     * Retrieves all values in the bag
+     *
+     * @return array
+     */
+    public function values()
+    {
+        return array_reduce($this->keys(), array($this, 'getToArray'), array());
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function offsetExists($offset)
+    {
+        return $this->has($offset);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function offsetGet($offset)
+    {
+        return $this->get($offset);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function offsetSet($offset, $value)
+    {
+        $this->set($offset, $value);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function offsetUnset($offset)
+    {
+        $this->delete($offset);
+    }
+
     /*------------------------------------------------------------------------*\
     | Protected methods                                                        |
     \*------------------------------------------------------------------------*/
@@ -127,5 +187,25 @@ abstract class AbstractBag implements BagInterface
     protected function generateKey($key)
     {
         return $key;
+    }
+
+
+    /*------------------------------------------------------------------------*\
+    | Private methods                                                          |
+    \*------------------------------------------------------------------------*/
+
+    /**
+     * Gets a value and sets it into the given array (utility method for values())
+     *
+     * @param string $key
+     * @param array  $array
+     *
+     * @return array
+     */
+    private function getToArray(array &$array, &$key)
+    {
+        $array[$key] = $this->get($key, true);
+
+        return $array;
     }
 }

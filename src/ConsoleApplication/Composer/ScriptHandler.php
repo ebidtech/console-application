@@ -14,7 +14,6 @@ namespace ConsoleApplication\Composer;
 use Composer\Config;
 use Composer\Package\Package;
 use Composer\Script\CommandEvent;
-use ConsoleApplication\Exception\ConfigurationException;
 use Symfony\Component\Filesystem\Filesystem;
 
 class ScriptHandler
@@ -77,7 +76,8 @@ class ScriptHandler
 
         // Throw exception if directory exists.
         if ($fs->exists($directory)) {
-            throw ConfigurationException::directoryAlreadyExistsException($directory);
+            //@TODO It can be a good idea to throw an exception, but just ignore if for now.
+            return;
         }
 
         // Copy folder.

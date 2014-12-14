@@ -11,63 +11,85 @@
 
 namespace ConsoleApplication\DependencyInjection;
 
-use ConsoleApplication\DependencyInjection\Bag\ApplicationBag;
-use ConsoleApplication\DependencyInjection\Bag\ConfigurationBag;
-use ConsoleApplication\DependencyInjection\Bag\ConsoleBag;
-use ConsoleApplication\DependencyInjection\Bag\ParameterBag;
-use ConsoleApplication\DependencyInjection\Bag\ServiceBag;
+use ConsoleApplication\Bag\ApplicationBag;
+use ConsoleApplication\Bag\CommandBag;
+use ConsoleApplication\Bag\ConfigurationBag;
+use ConsoleApplication\Bag\ConsoleBag;
+use ConsoleApplication\Bag\EventSubscriberBag;
+use ConsoleApplication\Bag\ParameterBag;
+use ConsoleApplication\Bag\ServiceBag;
 use ConsoleApplication\DependencyInjection\Loader\FileLoader;
-use ConsoleApplication\EventSubscriber\InitializeEventSubscriber;
 use Symfony\Component\Console\Logger\ConsoleLogger;
-use Symfony\Component\Console\Output\NullOutput;
+use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 
 class Container extends \Pimple\Container
 {
     /*------------------------------------------------------------------------*\
+    | Attributes                                                               |
+    \*------------------------------------------------------------------------*/
+
+    /**
+     * @var boolean
+     */
+    private $initialized;
+
+    /*------------------------------------------------------------------------*\
     | Constructor                                                              |
     \*------------------------------------------------------------------------*/
 
     /**
-     * Creates a new container (method order is important)
+     * Creates a new container
      *
-     * @param string $environment
-     * @param string $appName
-     * @param string $appVersion
      * @param string $directory
      */
-    public function __construct($environment, $appName, $appVersion, $directory)
+    public function __construct($directory)
     {
+        // Mark container as uninitialized.
+        $this->initialized = false;
+
         // Create bags and set default values.
         $this->createBags();
-        $this->setDefaults($environment, $appName, $appVersion, $directory);
+        $this->setDefaults($directory);
 
-        // Load essential services and events (these are loaded first to enable overrides).
+        // Load essential services.
         $this->loadEssentialServices();
-        $this->loadEssentialEventSubscribers();
-
-        // Load configuration and parameters.
-        $this->loadParameters();
-        $this->loadConfigurations();
-
-        // Load services.
-        $this->loadServices();
-
-        // Load EventSubscribers.
-        $this->loadEventSubscribers();
-
-        // Load commands.
-        //$this->loadCommands();
     }
 
     /*------------------------------------------------------------------------*\
     | Public methods                                                           |
     \*------------------------------------------------------------------------*/
 
-    //@TODO
+    /**
+     * Initializes configurations when needed, not in constructor
+     * so that the application can have some control
+     */
+    public function initialize()
+    {
+        // Initialize only the first time.
+        if ($this->initialized === false) {
+            // Rebuild the logger if a new output is set.
+            if ($this->getConsoleBag()->has('output')) {
+                $this->getServiceBag()->setLogger(
+                    new ConsoleLogger($this->getConsoleBag()->get('output'))
+                );
+            }
+
+            // Load files and classes.
+            $this->loadFiles();
+            $this->loadClasses();
+            $this->initialized = true;
+        }
+    }
+
+    /**
+     * Registers a new service
+     *
+     * @param ServiceProviderInterface $serviceProvider
+     */
     public function registerService(ServiceProviderInterface $serviceProvider)
     {
-        //@TODO
+        $serviceProvider->register($this);
     }
 
     /**
@@ -99,24 +121,19 @@ class Container extends \Pimple\Container
     /**
      * Set default values
      *
-     * @param string $environment
-     * @param string $appName
-     * @param string $appVersion
      * @param string $directory
      */
-    private function setDefaults($environment, $appName, $appVersion, $directory)
+    private function setDefaults($directory)
     {
         // Application configurations.
         $applicationBag = $this->getApplicationBag();
-        $applicationBag->set('charset', 'UTF-8');
-        $applicationBag->set('env', $environment);
-        $applicationBag->set('name', $appName);
-        $applicationBag->set('version', $appVersion);
+        $applicationBag->setCharset('UTF-8');
 
         // Useful directories.
-        $applicationBag->set('dir.base', sprintf('%s/', realpath($directory)));
-        $applicationBag->set('dir.app', sprintf('%s%s', $applicationBag->get('dir.base'), 'app/'));
-        $applicationBag->set('dir.config', sprintf('%s%s', $applicationBag->get('dir.base'), 'app/config/'));
+        $applicationBag
+            ->setDirectory('base', sprintf('%s/', realpath($directory)))
+            ->setDirectory('app', sprintf('%s%s', $applicationBag->getDirectory('base'), 'app/'))
+            ->setDirectory('config', sprintf('%s%s', $applicationBag->getDirectory('base'), 'app/config/'));
     }
 
     /**
@@ -127,8 +144,8 @@ class Container extends \Pimple\Container
         // Get service bag.
         $serviceBag = $this->getServiceBag();
 
-        // Logger (sent to null output by default).
-        $serviceBag->setLogger(new ConsoleLogger(new NullOutput()));
+        // Logger (very verbose log by default, it will be replaced later).
+        $serviceBag->setLogger(new ConsoleLogger(new ConsoleOutput(ConsoleOutput::VERBOSITY_DEBUG)));
 
         // Event dispatcher.
         $serviceBag->setDispatcher(new EventDispatcher());
@@ -138,23 +155,32 @@ class Container extends \Pimple\Container
     }
 
     /**
-     * Loads essential event subscribers.
+     * Load files
      */
-    public function loadEssentialEventSubscribers()
+    private function loadFiles()
     {
-        // Initialize event subscriber.
-        $this->registerEventSubscriber(new InitializeEventSubscriber());
+        // Load configuration and parameters.
+        $this->loadParametersFile();
+        $this->loadConfigurationsFile();
+
+        // Load services.
+        $this->loadServicesFile();
+
+        // Load event subscribers.
+        $this->loadEventSubscribersFile();
+
+        // Load commands.
+        $this->loadCommandsFile();
     }
 
     /**
      * Load parameters
      */
-    private function loadParameters()
+    private function loadParametersFile()
     {
-        // Get environment.
+        // Get useful values.
         $fileLoader = $this->getServiceBag()->getFileLoader();
         $applicationBag = $this->getApplicationBag();
-        $env = $applicationBag->get('env');
 
         // Load general parameters.
         $fileLoader->loadFileToBag(
@@ -164,19 +190,22 @@ class Container extends \Pimple\Container
         );
 
         // Load environment parameters (ignore if file does not exist).
-        $fileLoader->loadFileToBag(
-            $this->generateConfigFilePath(sprintf('%s_%s.yml', 'parameters', $env)),
-            'parameters',
-            $this->getParameterBag(),
-            false,
-            true
-        );
+        if ($applicationBag->has('env')) {
+            $env = $applicationBag->get('env');
+            $fileLoader->loadFileToBag(
+                $this->generateConfigFilePath(sprintf('%s_%s.yml', 'parameters', $env)),
+                'parameters',
+                $this->getParameterBag(),
+                false,
+                true
+            );
+        }
     }
 
     /**
      * Load configuration
      */
-    private function loadConfigurations()
+    private function loadConfigurationsFile()
     {
         // Load config.
         $fileLoader = $this->getServiceBag()->getFileLoader();
@@ -194,7 +223,7 @@ class Container extends \Pimple\Container
     /**
      * Loads services from configuration
      */
-    private function loadServices()
+    private function loadServicesFile()
     {
         //@TODO
     }
@@ -202,7 +231,54 @@ class Container extends \Pimple\Container
     /**
      * Loads event subscribers from configuration
      */
+    private function loadEventSubscribersFile()
+    {
+        //@TODO
+    }
+
+    /**
+     * Loads commands from configuration
+     */
+    private function loadCommandsFile()
+    {
+        //@TODO
+    }
+
+    /**
+     * Load classes
+     */
+    private function loadClasses()
+    {
+        // Load service classes.
+        $this->loadServices();
+
+        // Load event subscriber classes.
+        $this->loadEventSubscribers();
+
+        // Load command classes.
+        $this->loadCommands();
+    }
+
+    /**
+    * Loads service classes
+    */
+    private function loadServices()
+    {
+        //@TODO
+    }
+
+    /**
+     * Loads event subscriber classes
+     */
     private function loadEventSubscribers()
+    {
+        //@TODO
+    }
+
+    /**
+     * Loads command classes
+     */
+    private function loadCommands()
     {
         //@TODO
     }
@@ -216,7 +292,7 @@ class Container extends \Pimple\Container
      */
     private function generateConfigFilePath($filename)
     {
-        return sprintf('%s%s', $this->getApplicationBag()->get('dir.config'), $filename);
+        return sprintf('%s%s', $this->getApplicationBag()->getDirectory('config'), $filename);
     }
 
     /*------------------------------------------------------------------------*\
@@ -272,5 +348,25 @@ class Container extends \Pimple\Container
     public function getConfigurationBag()
     {
         return $this[ConfigurationBag::CONFIGURATION_BAG_BASE_KEY];
+    }
+
+    /**
+     * Retrieves the command bag
+     *
+     * @return CommandBag
+     */
+    public function getCommandBag()
+    {
+        return $this[CommandBag::COMMAND_BAG_BASE_KEY];
+    }
+
+    /**
+     * Retrieves the event subscriber bag
+     *
+     * @return EventSubscriberBag
+     */
+    public function getEventSubscriberBag()
+    {
+        return $this[EventSubscriberBag::EVENT_SUBSCRIBER_BAG_BASE_KEY];
     }
 }

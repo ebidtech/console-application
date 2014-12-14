@@ -13,6 +13,10 @@ namespace ConsoleApplication\Exception;
 
 class LogicException extends RuntimeException
 {
+    /*------------------------------------------------------------------------*\
+    | Public static methods                                                    |
+    \*------------------------------------------------------------------------*/
+
     /**
      * Method not implemented exception
      *

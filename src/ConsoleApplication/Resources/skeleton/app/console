@@ -14,5 +14,5 @@
 require __DIR__ . '/bootstrap.php';
 
 // Load the command application.
-$application = new \ConsoleApplication\Console\ConsoleApplication($container);
+$application = new \ConsoleApplication\Console\ConsoleApplication($container, $appName, $appVersion);
 $application->run();

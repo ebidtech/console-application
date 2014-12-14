@@ -88,11 +88,6 @@ abstract class BaseCommand extends Command
         $this->application = parent::getApplication();
         $this->container = $this->application->getContainer();
 
-        // Register console input and output in the container.
-        $console = $this->getContainer()->getConsoleBag();
-        $console->set('input', $input);
-        $console->set('output', $output);
-
         // Dispatch pre execute event.
         $dispatcher = $this->container->getServiceBag()->getDispatcher();
         $dispatcher->dispatch(Events::PRE_INITIALIZE, new PreInitializeEvent($this->container));

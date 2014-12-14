@@ -9,9 +9,9 @@
  * file that was distributed with this source code.
  */
 
-namespace ConsoleApplication\DependencyInjection\Bag;
+namespace ConsoleApplication\Bag;
 
-class ApplicationBag extends AbstractBag
+class EventSubscriberBag extends AbstractBag
 {
     /*------------------------------------------------------------------------*\
     | Constants                                                                |
@@ -20,7 +20,7 @@ class ApplicationBag extends AbstractBag
     /**
      * @const string
      */
-    const APPLICATION_BAG_BASE_KEY = 'application';
+    const EVENT_SUBSCRIBER_BAG_BASE_KEY = 'event_subscriber';
 
     /*------------------------------------------------------------------------*\
     | Protected methods                                                        |
@@ -35,6 +35,6 @@ class ApplicationBag extends AbstractBag
      */
     protected function generateKey($key)
     {
-        return sprintf('%s.%s', self::APPLICATION_BAG_BASE_KEY, $key);
+        return sprintf('%s.%s', self::EVENT_SUBSCRIBER_BAG_BASE_KEY, $key);
     }
 }

@@ -15,6 +15,10 @@ use ConsoleApplication\Exception\ConfigurationException;
 
 interface EventSubscriberInterface extends \Symfony\Component\EventDispatcher\EventSubscriberInterface
 {
+    /*------------------------------------------------------------------------*\
+    | Public methods                                                           |
+    \*------------------------------------------------------------------------*/
+
     /**
      * Register a event subscriber in the given container
      *

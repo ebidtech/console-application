@@ -9,11 +9,11 @@
  * file that was distributed with this source code.
  */
 
-namespace ConsoleApplication\DependencyInjection\Bag;
+namespace ConsoleApplication\Bag;
 
 use ConsoleApplication\Exception\ResourceNotFoundException;
 
-interface BagInterface
+interface BagInterface extends \ArrayAccess
 {
     /*------------------------------------------------------------------------*\
     | Public methods                                                           |
@@ -42,6 +42,15 @@ interface BagInterface
     public function set($key, $value);
 
     /**
+     * Remove a value from the bag
+     *
+     * @param string  $key
+     *
+     * @return AbstractBag
+     */
+    public function delete($key);
+
+    /**
      * Checks if a value exists
      *
      * @param string $key
@@ -56,4 +65,11 @@ interface BagInterface
      * @return array
      */
     public function keys();
+
+    /**
+     * Retrieves all values in the bag
+     *
+     * @return array
+     */
+    public function values();
 }

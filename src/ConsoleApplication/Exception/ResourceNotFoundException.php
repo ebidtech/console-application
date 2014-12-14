@@ -13,6 +13,10 @@ namespace ConsoleApplication\Exception;
 
 class ResourceNotFoundException extends RuntimeException
 {
+    /*------------------------------------------------------------------------*\
+    | Public static methods                                                    |
+    \*------------------------------------------------------------------------*/
+
     /**
      * Bag parameter not found exception
      *

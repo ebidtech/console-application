@@ -1,1 +1,5 @@
-parameters: ~
+parameters:
+    parameter_2:
+        val_1: 1111
+        var_2: asdasdasdasd
+    parameter_3: 'KKKKKKKKKKK'

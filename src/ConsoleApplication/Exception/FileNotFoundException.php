@@ -13,6 +13,10 @@ namespace ConsoleApplication\Exception;
 
 class FileNotFoundException extends RuntimeException
 {
+    /*------------------------------------------------------------------------*\
+    | Public static methods                                                    |
+    \*------------------------------------------------------------------------*/
+
     /**
      * Configuration file not found exception
      *

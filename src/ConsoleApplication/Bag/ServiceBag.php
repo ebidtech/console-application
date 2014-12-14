@@ -9,7 +9,7 @@
  * file that was distributed with this source code.
  */
 
-namespace ConsoleApplication\DependencyInjection\Bag;
+namespace ConsoleApplication\Bag;
 
 use ConsoleApplication\DependencyInjection\Loader\FileLoaderInterface;
 use Psr\Log\LoggerInterface;
