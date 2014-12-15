@@ -14,7 +14,6 @@ namespace ConsoleApplication\Composer;
 use Composer\Config;
 use Composer\Package\Package;
 use Composer\Script\CommandEvent;
-use Symfony\Component\Filesystem\Filesystem;
 
 class ScriptHandler
 {
@@ -70,18 +69,16 @@ class ScriptHandler
     public static function buildBootstrap(CommandEvent $event)
     {
         // Build path.
-        $fs = new Filesystem();
         static::buildPathFromBase($event, self::CONSOLE_APPLICATION_APP_DIR);
         $directory = self::$options[self::CONSOLE_APPLICATION_APP_DIR];
 
-        // Throw exception if directory exists.
-        if ($fs->exists($directory)) {
-            //@TODO It can be a good idea to throw an exception, but just ignore if for now.
+        if (file_exists($directory)) {
+            echo 'Directory "app" already exists, will not build bootstrap.';
             return;
         }
 
         // Copy folder.
-        $fs->copy(realpath(sprintf('%s%s', __DIR__, '/../Resources/skeleton/app')), $directory);
+        copy(realpath(sprintf('%s%s', __DIR__, '/../Resources/skeleton/app')), $directory);
     }
 
     /*------------------------------------------------------------------------*\
