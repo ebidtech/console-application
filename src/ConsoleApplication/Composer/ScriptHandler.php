@@ -78,7 +78,7 @@ class ScriptHandler
         }
 
         // Copy folder.
-        copy(realpath(sprintf('%s%s', __DIR__, '/../Resources/skeleton/app')), $directory);
+        xcopy(realpath(sprintf('%s%s', __DIR__, '/../Resources/skeleton/app')), $directory);
     }
 
     /*------------------------------------------------------------------------*\
@@ -105,5 +105,48 @@ class ScriptHandler
         // Set values.
         self::$options[self::CONSOLE_APPLICATION_BASE_DIR] = $basePath;
         self::$options[$directory] = $completePath;
+    }
+
+    /**
+     * Copy a file, or recursively copy a folder and its contents
+     *
+     * @param       string   $source
+     * @param       string   $destination
+     * @param       integer  $permissions
+     *
+     * @return      boolean
+     */
+    private static function xcopy($source, $destination, $permissions = 0755)
+    {
+        // Check for symlinks.
+        if (is_link($source)) {
+            return symlink(readlink($source), $destination);
+        }
+
+        // Simple copy for a file.
+        if (is_file($source)) {
+            return copy($source, $destination);
+        }
+
+        // Make destination directory.
+        if (!is_dir($destination)) {
+            mkdir($destination, $permissions);
+        }
+
+        // Loop through the folder.
+        $dir = dir($source);
+        while (false !== $entry = $dir->read()) {
+            // Skip pointers.
+            if ($entry == '.' || $entry == '..') {
+                continue;
+            }
+
+            // Deep copy directories.
+            static::xcopy("$source/$entry", "$destination/$entry", $permissions);
+        }
+
+        // Clean up.
+        $dir->close();
+        return true;
     }
 }
