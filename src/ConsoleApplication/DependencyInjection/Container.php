@@ -15,10 +15,14 @@ use ConsoleApplication\Bag\ApplicationBag;
 use ConsoleApplication\Bag\CommandBag;
 use ConsoleApplication\Bag\ConfigurationBag;
 use ConsoleApplication\Bag\ConsoleBag;
+use ConsoleApplication\Bag\ContainerLessBag;
 use ConsoleApplication\Bag\EventSubscriberBag;
 use ConsoleApplication\Bag\ParameterBag;
 use ConsoleApplication\Bag\ServiceBag;
+use ConsoleApplication\Console\Command\BaseCommand;
 use ConsoleApplication\DependencyInjection\Loader\FileLoader;
+use ConsoleApplication\Exception\ConfigurationException;
+use ConsoleApplication\Exception\LogicException;
 use Symfony\Component\Console\Logger\ConsoleLogger;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\EventDispatcher\EventDispatcher;
@@ -77,7 +81,6 @@ class Container extends \Pimple\Container
 
             // Load files and classes.
             $this->loadFiles();
-            $this->loadClasses();
             $this->initialized = true;
         }
     }
@@ -86,20 +89,24 @@ class Container extends \Pimple\Container
      * Registers a new service
      *
      * @param ServiceProviderInterface $serviceProvider
+     * @param string                   $name
+     * @param array                    $arguments
      */
-    public function registerService(ServiceProviderInterface $serviceProvider)
+    public function registerService(ServiceProviderInterface $serviceProvider, $name, array $arguments)
     {
-        $serviceProvider->register($this);
+        $serviceProvider->register($this, $name, $arguments);
     }
 
     /**
      * Registers a new event subscriber
      *
      * @param EventSubscriberInterface $eventSubscriber
+     * @param string                   $name
+     * @param array                    $arguments
      */
-    public function registerEventSubscriber(EventSubscriberInterface $eventSubscriber)
+    public function registerEventSubscriber(EventSubscriberInterface $eventSubscriber, $name, array $arguments)
     {
-        $eventSubscriber->register($this);
+        $eventSubscriber->register($this, $name, $arguments);
     }
 
     /*------------------------------------------------------------------------*\
@@ -116,6 +123,8 @@ class Container extends \Pimple\Container
         $this[ParameterBag::PARAMETER_BAG_BASE_KEY] = new ParameterBag($this);
         $this[ServiceBag::SERVICE_BAG_BASE_KEY] = new ServiceBag($this);
         $this[ConfigurationBag::CONFIGURATION_BAG_BASE_KEY] = new ConfigurationBag($this);
+        $this[CommandBag::COMMAND_BAG_BASE_KEY] = new CommandBag($this);
+        $this[EventSubscriberBag::EVENT_SUBSCRIBER_BAG_BASE_KEY] = new EventSubscriberBag($this);
     }
 
     /**
@@ -225,7 +234,35 @@ class Container extends \Pimple\Container
      */
     private function loadServicesFile()
     {
-        //@TODO
+        // Load file.
+        $bag = new ContainerLessBag();
+        $fileLoader = $this->getServiceBag()->getFileLoader();
+        $filename = $this->generateConfigFilePath('service_providers.yml');
+        $fileLoader->loadFileToBag($filename, 'service_providers', $bag);
+
+        // Resolve parameters.
+        $fileLoader->resolveParameters($bag, $this->getParameterBag());
+
+        // Instantiate services and load then to the container.
+        foreach ($bag->values() as $name => $values) {
+            // Check if class is set (null counts as unset).
+            if (!isset($values['class'])) {
+                throw ConfigurationException::configurationAttributeNotFoundException($filename, $name, 'class');
+            }
+            $class = $values['class'];
+            $service = $this->instantiateClass($class);
+
+            if (!($service instanceof ServiceProviderInterface)) {
+                throw LogicException::mustImplementInterfaceException('ServiceProviderInterface', $class);
+            }
+
+            // Register the service.
+            $this->registerService(
+                $service,
+                $name,
+                isset($values['arguments']) ? $values['arguments'] : array()
+            );
+        }
     }
 
     /**
@@ -233,7 +270,35 @@ class Container extends \Pimple\Container
      */
     private function loadEventSubscribersFile()
     {
-        //@TODO
+        // Load file.
+        $bag = new ContainerLessBag();
+        $fileLoader = $this->getServiceBag()->getFileLoader();
+        $filename = $this->generateConfigFilePath('event_subscribers.yml');
+        $fileLoader->loadFileToBag($filename, 'event_subscribers', $bag);
+
+        // Resolve parameters.
+        $fileLoader->resolveParameters($bag, $this->getParameterBag());
+
+        // Instantiate services and load then to the container.
+        foreach ($bag->values() as $name => $values) {
+            // Check if class is set (null counts as unset).
+            if (!isset($values['class'])) {
+                throw ConfigurationException::configurationAttributeNotFoundException($filename, $name, 'class');
+            }
+            $class = $values['class'];
+            $eventSubscriber = $this->instantiateClass($class);
+
+            if (!($eventSubscriber instanceof EventSubscriberInterface)) {
+                throw LogicException::mustImplementInterfaceException('EventSubscriberInterface', $class);
+            }
+
+            // Register the event subscriber.
+            $this->registerEventSubscriber(
+                $eventSubscriber,
+                $name,
+                isset($values['arguments']) ? $values['arguments'] : array()
+            );
+        }
     }
 
     /**
@@ -241,46 +306,32 @@ class Container extends \Pimple\Container
      */
     private function loadCommandsFile()
     {
-        //@TODO
-    }
+        // Load file.
+        $bag = new ContainerLessBag();
+        $commandBag = $this->getCommandBag();
+        $fileLoader = $this->getServiceBag()->getFileLoader();
+        $filename = $this->generateConfigFilePath('commands.yml');
+        $fileLoader->loadFileToBag($filename, 'commands', $bag);
 
-    /**
-     * Load classes
-     */
-    private function loadClasses()
-    {
-        // Load service classes.
-        $this->loadServices();
+        // Resolve parameters.
+        $fileLoader->resolveParameters($bag, $this->getParameterBag());
 
-        // Load event subscriber classes.
-        $this->loadEventSubscribers();
+        // Instantiate services and load then to the container.
+        foreach ($bag->values() as $name => $values) {
+            // Check if class is set (null counts as unset).
+            if (!isset($values['class'])) {
+                throw ConfigurationException::configurationAttributeNotFoundException($filename, $name, 'class');
+            }
+            $class = $values['class'];
+            $command = $this->instantiateClass($class);
 
-        // Load command classes.
-        $this->loadCommands();
-    }
+            if (!($command instanceof BaseCommand)) {
+                throw LogicException::mustExtendClassException('BaseCommand', $class);
+            }
 
-    /**
-    * Loads service classes
-    */
-    private function loadServices()
-    {
-        //@TODO
-    }
-
-    /**
-     * Loads event subscriber classes
-     */
-    private function loadEventSubscribers()
-    {
-        //@TODO
-    }
-
-    /**
-     * Loads command classes
-     */
-    private function loadCommands()
-    {
-        //@TODO
+            // Register the command.
+            $commandBag->set($name, $command);
+        }
     }
 
     /**
@@ -289,10 +340,38 @@ class Container extends \Pimple\Container
      * @param string $filename
      *
      * @return string
+     *
+     * @throws LogicException
      */
     private function generateConfigFilePath($filename)
     {
         return sprintf('%s%s', $this->getApplicationBag()->getDirectory('config'), $filename);
+    }
+
+    private function instantiateClass($class)
+    {
+        // Checks if the class exists.
+        if (!class_exists($class)) {
+            throw LogicException::classNotFoundException($class);
+        }
+
+        // Get class reflection.
+        $reflection = new \ReflectionClass($class);
+
+        // Checks if the class is instantiable.
+        if (!($reflection->isInstantiable())) {
+            throw LogicException::classNotInstantiableException($class);
+        }
+
+        // Checks if the constructor takes 0 parameters.
+        if ($reflection->hasMethod('__construct') &&
+            $reflection->getMethod('__construct')->getNumberOfRequiredParameters() !== 0
+        ) {
+            throw LogicException::invalidNumberOfParametersException($class, '__construct()', 0);
+        }
+
+        // Instantiate class and return the object.
+        return new $class;
     }
 
     /*------------------------------------------------------------------------*\

@@ -26,6 +26,6 @@ class FileNotFoundException extends RuntimeException
      */
     public static function configurationFileNotFoundException($filename)
     {
-        return new static(sprintf('Configuration file "%s" not found', $filename));
+        return new static(sprintf('Configuration file "%s" not found.', $filename));
     }
 }

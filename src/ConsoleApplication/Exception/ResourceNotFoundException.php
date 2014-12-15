@@ -27,6 +27,6 @@ class ResourceNotFoundException extends RuntimeException
      */
     public static function bagParameterNotFoundException($bag, $parameter)
     {
-        return new static(sprintf('Parameter "%s" was not found in bag "%s"', $parameter, $bag));
+        return new static(sprintf('Parameter "%s" was not found in bag "%s".', $parameter, $bag));
     }
 }

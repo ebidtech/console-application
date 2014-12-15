@@ -22,9 +22,11 @@ interface EventSubscriberInterface extends \Symfony\Component\EventDispatcher\Ev
     /**
      * Register a event subscriber in the given container
      *
-     * @param Container
+     * @param Container $container
+     * @param string    $name
+     * @param array     $arguments
      *
      * @throws ConfigurationException
      */
-    public function register(Container $container);
+    public function register(Container $container, $name = null, array $arguments = array());
 }

@@ -27,7 +27,7 @@ class ConfigurationException extends RuntimeException
      */
     public static function configurationFileRootNotFoundException($filename, $root)
     {
-        return new static(sprintf('Root node "%s" could not be found in file "%"', $root, $filename));
+        return new static(sprintf('Root node "%s" could not be found in file "%".', $root, $filename));
     }
 
     /**
@@ -39,7 +39,7 @@ class ConfigurationException extends RuntimeException
      */
     public static function configurationParameterNotFoundException($parameter)
     {
-        return new static(sprintf('Required configuration parameter "%s" was not defined', $parameter));
+        return new static(sprintf('Required configuration parameter "%s" was not defined.', $parameter));
     }
 
     /**
@@ -51,6 +51,27 @@ class ConfigurationException extends RuntimeException
      */
     public static function directoryAlreadyExistsException($directory)
     {
-        return new static(sprintf('Directory "%s" already exists', $directory));
+        return new static(sprintf('Directory "%s" already exists.', $directory));
+    }
+
+    /**
+     * Configuration attribute not found exception
+     *
+     * @param string $filename
+     * @param string $parent
+     * @param string $attribute
+     *
+     * @return ConfigurationException
+     */
+    public static function configurationAttributeNotFoundException($filename, $parent, $attribute)
+    {
+        return new static(
+            sprintf(
+                'Required configuration attribute "%s" for "%" could not be found in file "%".',
+                $attribute,
+                $parent,
+                $filename
+            )
+        );
     }
 }
