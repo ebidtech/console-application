@@ -10,4 +10,4 @@
  */
 
 $appName    = 'ConsoleApplication';
-$appVersion = '0.1.0';
+$appVersion = '1.0.0';
