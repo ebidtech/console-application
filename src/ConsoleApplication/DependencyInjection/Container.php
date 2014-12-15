@@ -323,10 +323,19 @@ class Container extends \Pimple\Container
                 throw ConfigurationException::configurationAttributeNotFoundException($filename, $name, 'class');
             }
             $class = $values['class'];
-            $command = $this->instantiateClass($class);
 
+            // Override command name if defined.
+            $name = isset($values['name']) ? $values['name'] : $name;
+            $command = $this->instantiateClass($class, array($name));
+
+            // Check if correct class.
             if (!($command instanceof BaseCommand)) {
                 throw LogicException::mustExtendClassException('BaseCommand', $class);
+            }
+
+            // Add description.
+            if (isset($values['description'])) {
+                $command->setDescription($values['description']);
             }
 
             // Register the command.
@@ -348,7 +357,15 @@ class Container extends \Pimple\Container
         return sprintf('%s%s', $this->getApplicationBag()->getDirectory('config'), $filename);
     }
 
-    private function instantiateClass($class)
+    /**
+     * Instantiates an object
+     *
+     * @param string $class
+     * @param array  $arguments
+     *
+     * @return object
+     */
+    private function instantiateClass($class, $arguments = array())
     {
         // Checks if the class exists.
         if (!class_exists($class)) {
@@ -371,7 +388,7 @@ class Container extends \Pimple\Container
         }
 
         // Instantiate class and return the object.
-        return new $class;
+        return $reflection->newInstanceArgs($arguments);
     }
 
     /*------------------------------------------------------------------------*\
