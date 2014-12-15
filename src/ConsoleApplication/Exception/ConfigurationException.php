@@ -27,7 +27,7 @@ class ConfigurationException extends RuntimeException
      */
     public static function configurationFileRootNotFoundException($filename, $root)
     {
-        return new static(sprintf('Root node "%s" could not be found in file "%".', $root, $filename));
+        return new static(sprintf('Root node "%s" could not be found in file "%s".', $root, $filename));
     }
 
     /**
@@ -67,7 +67,7 @@ class ConfigurationException extends RuntimeException
     {
         return new static(
             sprintf(
-                'Required configuration attribute "%s" for "%" could not be found in file "%".',
+                'Required configuration attribute "%s" for "%s" could not be found in file "%s".',
                 $attribute,
                 $parent,
                 $filename
