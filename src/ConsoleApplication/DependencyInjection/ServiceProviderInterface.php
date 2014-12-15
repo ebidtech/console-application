@@ -23,10 +23,10 @@ interface ServiceProviderInterface
      * Register a service provider in the given container
      *
      * @param Container $container
-     * @param string    $name
-     * @param array     $arguments
+     *
+     * @return object
      *
      * @throws ConfigurationException
      */
-    public function register(Container $container, $name = null, array $arguments = array());
+    public function register(Container $container);
 }

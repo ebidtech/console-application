@@ -90,11 +90,10 @@ class Container extends \Pimple\Container
      *
      * @param ServiceProviderInterface $serviceProvider
      * @param string                   $name
-     * @param array                    $arguments
      */
-    public function registerService(ServiceProviderInterface $serviceProvider, $name, array $arguments)
+    public function registerService(ServiceProviderInterface $serviceProvider, $name)
     {
-        $serviceProvider->register($this, $name, $arguments);
+        $this->getServiceBag()->set($name, $serviceProvider->register($this));
     }
 
     /**
@@ -102,11 +101,10 @@ class Container extends \Pimple\Container
      *
      * @param EventSubscriberInterface $eventSubscriber
      * @param string                   $name
-     * @param array                    $arguments
      */
-    public function registerEventSubscriber(EventSubscriberInterface $eventSubscriber, $name, array $arguments)
+    public function registerEventSubscriber(EventSubscriberInterface $eventSubscriber, $name)
     {
-        $eventSubscriber->register($this, $name, $arguments);
+        $this->getEventSubscriberBag()->set($name, $eventSubscriber->register($this));
     }
 
     /*------------------------------------------------------------------------*\
@@ -250,18 +248,14 @@ class Container extends \Pimple\Container
                 throw ConfigurationException::configurationAttributeNotFoundException($filename, $name, 'class');
             }
             $class = $values['class'];
-            $service = $this->instantiateClass($class);
+            $service = $this->instantiateClass($class, isset($values['arguments']) ? $values['arguments'] : array());
 
             if (!($service instanceof ServiceProviderInterface)) {
                 throw LogicException::mustImplementInterfaceException('ServiceProviderInterface', $class);
             }
 
             // Register the service.
-            $this->registerService(
-                $service,
-                $name,
-                isset($values['arguments']) ? $values['arguments'] : array()
-            );
+            $this->registerService($service, $name);
         }
     }
 
@@ -286,18 +280,17 @@ class Container extends \Pimple\Container
                 throw ConfigurationException::configurationAttributeNotFoundException($filename, $name, 'class');
             }
             $class = $values['class'];
-            $eventSubscriber = $this->instantiateClass($class);
+            $eventSubscriber = $this->instantiateClass(
+                $class,
+                isset($values['arguments']) ? $values['arguments'] : array()
+            );
 
             if (!($eventSubscriber instanceof EventSubscriberInterface)) {
                 throw LogicException::mustImplementInterfaceException('EventSubscriberInterface', $class);
             }
 
             // Register the event subscriber.
-            $this->registerEventSubscriber(
-                $eventSubscriber,
-                $name,
-                isset($values['arguments']) ? $values['arguments'] : array()
-            );
+            $this->registerEventSubscriber($eventSubscriber, $name);
         }
     }
 
@@ -380,11 +373,17 @@ class Container extends \Pimple\Container
             throw LogicException::classNotInstantiableException($class);
         }
 
-        // Checks if the constructor takes 0 parameters.
-        if ($reflection->hasMethod('__construct') &&
-            $reflection->getMethod('__construct')->getNumberOfRequiredParameters() !== 0
-        ) {
-            throw LogicException::invalidNumberOfParametersException($class, '__construct()', 0);
+        // Checks if the constructor exists and takes the right number of parameters.
+        if ($reflection->hasMethod('__construct')) {
+            $method = $reflection->getMethod('__construct');
+
+            if ($method->getNumberOfRequiredParameters() > count($arguments)) {
+                throw LogicException::invalidNumberOfParametersException(
+                    $class,
+                    '__construct()',
+                    $method->getNumberOfRequiredParameters()
+                );
+            }
         }
 
         // Instantiate class and return the object.
