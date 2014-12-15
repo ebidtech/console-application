@@ -78,7 +78,7 @@ class ScriptHandler
         }
 
         // Copy folder.
-        xcopy(realpath(sprintf('%s%s', __DIR__, '/../Resources/skeleton/app')), $directory);
+        static::xcopy(realpath(sprintf('%s%s', __DIR__, '/../Resources/skeleton/app')), $directory);
     }
 
     /*------------------------------------------------------------------------*\
