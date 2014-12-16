@@ -24,9 +24,7 @@ interface EventSubscriberInterface extends \Symfony\Component\EventDispatcher\Ev
      *
      * @param Container $container
      *
-     * @return object
-     *
      * @throws ConfigurationException
      */
-    public function register(Container $container);
+    public function initialize(Container $container);
 }

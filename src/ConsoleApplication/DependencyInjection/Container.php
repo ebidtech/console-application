@@ -16,7 +16,6 @@ use ConsoleApplication\Bag\CommandBag;
 use ConsoleApplication\Bag\ConfigurationBag;
 use ConsoleApplication\Bag\ConsoleBag;
 use ConsoleApplication\Bag\ContainerLessBag;
-use ConsoleApplication\Bag\EventSubscriberBag;
 use ConsoleApplication\Bag\ParameterBag;
 use ConsoleApplication\Bag\ServiceBag;
 use ConsoleApplication\Console\Command\BaseCommand;
@@ -89,22 +88,21 @@ class Container extends \Pimple\Container
      * Registers a new service
      *
      * @param ServiceProviderInterface $serviceProvider
-     * @param string                   $name
      */
-    public function registerService(ServiceProviderInterface $serviceProvider, $name)
+    public function registerService(ServiceProviderInterface $serviceProvider)
     {
-        $this->getServiceBag()->set($name, $serviceProvider->register($this));
+        $serviceProvider->register($this);
     }
 
     /**
      * Registers a new event subscriber
      *
      * @param EventSubscriberInterface $eventSubscriber
-     * @param string                   $name
      */
-    public function registerEventSubscriber(EventSubscriberInterface $eventSubscriber, $name)
+    public function registerEventSubscriber(EventSubscriberInterface $eventSubscriber)
     {
-        $this->getEventSubscriberBag()->set($name, $eventSubscriber->register($this));
+        $eventSubscriber->initialize($this);
+        $this->getServiceBag()->getDispatcher()->addSubscriber($eventSubscriber);
     }
 
     /*------------------------------------------------------------------------*\
@@ -122,7 +120,6 @@ class Container extends \Pimple\Container
         $this[ServiceBag::SERVICE_BAG_BASE_KEY] = new ServiceBag($this);
         $this[ConfigurationBag::CONFIGURATION_BAG_BASE_KEY] = new ConfigurationBag($this);
         $this[CommandBag::COMMAND_BAG_BASE_KEY] = new CommandBag($this);
-        $this[EventSubscriberBag::EVENT_SUBSCRIBER_BAG_BASE_KEY] = new EventSubscriberBag($this);
     }
 
     /**
@@ -258,8 +255,8 @@ class Container extends \Pimple\Container
         }
 
         // Register the services.
-        foreach ($services as $name => $service) {
-            $this->registerService($service, $name);
+        foreach ($services as $service) {
+            $this->registerService($service);
         }
     }
 
@@ -302,8 +299,8 @@ class Container extends \Pimple\Container
         }
 
         // Register the event subscribers.
-        foreach ($eventSubscribers as $name => $eventSubscriber) {
-            $this->registerEventSubscriber($eventSubscriber, $name);
+        foreach ($eventSubscribers as $eventSubscriber) {
+            $this->registerEventSubscriber($eventSubscriber);
         }
     }
 
@@ -475,15 +472,5 @@ class Container extends \Pimple\Container
     public function getCommandBag()
     {
         return $this[CommandBag::COMMAND_BAG_BASE_KEY];
-    }
-
-    /**
-     * Retrieves the event subscriber bag
-     *
-     * @return EventSubscriberBag
-     */
-    public function getEventSubscriberBag()
-    {
-        return $this[EventSubscriberBag::EVENT_SUBSCRIBER_BAG_BASE_KEY];
     }
 }

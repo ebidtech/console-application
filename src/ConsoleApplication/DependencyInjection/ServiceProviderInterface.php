@@ -24,8 +24,6 @@ interface ServiceProviderInterface
      *
      * @param Container $container
      *
-     * @return object
-     *
      * @throws ConfigurationException
      */
     public function register(Container $container);
