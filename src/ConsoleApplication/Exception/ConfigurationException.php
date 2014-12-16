@@ -74,4 +74,40 @@ class ConfigurationException extends RuntimeException
             )
         );
     }
+
+    /**
+     * Multiple service definitions exception
+     *
+     * @param string $service
+     *
+     * @return ConfigurationException
+     */
+    public static function multipleServiceDefinitionsException($service)
+    {
+        return new static(sprintf('Multiple definitions for service "%s".', $service));
+    }
+
+    /**
+     * Multiple event subscriber definitions exception
+     *
+     * @param string $eventSubscriber
+     *
+     * @return ConfigurationException
+     */
+    public static function multipleEventSubscriberDefinitionsException($eventSubscriber)
+    {
+        return new static(sprintf('Multiple definitions for event subscriber "%s".', $eventSubscriber));
+    }
+
+    /**
+     * Multiple command definitions exception
+     *
+     * @param string $command
+     *
+     * @return ConfigurationException
+     */
+    public static function multipleCommandDefinitionsException($command)
+    {
+        return new static(sprintf('Multiple definitions for command "%s".', $command));
+    }
 }

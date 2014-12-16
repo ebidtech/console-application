@@ -63,7 +63,7 @@ class FileLoader implements FileLoaderInterface
         $config = $yaml->parse(file_get_contents($filename));
 
         // Check if the root exists.
-        if (!array_key_exists($root, $config)) {
+        if ($root !== null && !array_key_exists($root, $config)) {
             // Just return the bag if exception is suppressed.
             if ($suppressException === true) {
                 return $bag;
@@ -73,8 +73,13 @@ class FileLoader implements FileLoaderInterface
             throw ConfigurationException::configurationFileRootNotFoundException($filename, $root);
         }
 
+        // Point to the root.
+        if ($root !== null) {
+            $config = $config[$root];
+        }
+
         // Load values to the bag and return it.
-        return $this->loadToBag($bag, is_array($config[$root]) ? $config[$root] : array(), $recursive);
+        return $this->loadToBag($bag, is_array($config) ? $config : array(), $recursive);
     }
 
     /**

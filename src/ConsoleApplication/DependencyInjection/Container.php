@@ -216,12 +216,7 @@ class Container extends \Pimple\Container
     {
         // Load config.
         $fileLoader = $this->getServiceBag()->getFileLoader();
-        $fileLoader->loadFileToBag(
-            $this->generateConfigFilePath('config.yml'),
-            'config',
-            $this->getConfigurationBag(),
-            true
-        );
+        $fileLoader->loadFileToBag($this->generateConfigFilePath('config.yml'), null, $this->getConfigurationBag());
 
         // Resolve parameters.
         $fileLoader->resolveParameters($this->getConfigurationBag(), $this->getParameterBag());
@@ -240,9 +235,15 @@ class Container extends \Pimple\Container
 
         // Resolve parameters.
         $fileLoader->resolveParameters($bag, $this->getParameterBag());
+        $services = array();
 
         // Instantiate services and load then to the container.
         foreach ($bag->values() as $name => $values) {
+            // Multiple definitions for the same service, abort.
+            if (array_key_exists($name, $services)) {
+                throw ConfigurationException::multipleServiceDefinitionsException($name);
+            }
+
             // Check if class is set (null counts as unset).
             if (!isset($values['class'])) {
                 throw ConfigurationException::configurationAttributeNotFoundException($filename, $name, 'class');
@@ -253,8 +254,11 @@ class Container extends \Pimple\Container
             if (!($service instanceof ServiceProviderInterface)) {
                 throw LogicException::mustImplementInterfaceException('ServiceProviderInterface', $class);
             }
+            $services[$name] = $service;
+        }
 
-            // Register the service.
+        // Register the services.
+        foreach ($services as $name => $service) {
             $this->registerService($service, $name);
         }
     }
@@ -272,9 +276,15 @@ class Container extends \Pimple\Container
 
         // Resolve parameters.
         $fileLoader->resolveParameters($bag, $this->getParameterBag());
+        $eventSubscribers = array();
 
         // Instantiate services and load then to the container.
         foreach ($bag->values() as $name => $values) {
+            // Multiple definitions for the same event subscriber, abort.
+            if (array_key_exists($name, $eventSubscribers)) {
+                throw ConfigurationException::multipleEventSubscriberDefinitionsException($name);
+            }
+
             // Check if class is set (null counts as unset).
             if (!isset($values['class'])) {
                 throw ConfigurationException::configurationAttributeNotFoundException($filename, $name, 'class');
@@ -288,8 +298,11 @@ class Container extends \Pimple\Container
             if (!($eventSubscriber instanceof EventSubscriberInterface)) {
                 throw LogicException::mustImplementInterfaceException('EventSubscriberInterface', $class);
             }
+            $eventSubscribers[$name] = $eventSubscriber;
+        }
 
-            // Register the event subscriber.
+        // Register the event subscribers.
+        foreach ($eventSubscribers as $name => $eventSubscriber) {
             $this->registerEventSubscriber($eventSubscriber, $name);
         }
     }
@@ -308,17 +321,23 @@ class Container extends \Pimple\Container
 
         // Resolve parameters.
         $fileLoader->resolveParameters($bag, $this->getParameterBag());
+        $commands = array();
 
         // Instantiate services and load then to the container.
         foreach ($bag->values() as $name => $values) {
+            // Override command name if defined.
+            $name = isset($values['name']) ? $values['name'] : $name;
+
+            // Multiple definitions for the same command, abort.
+            if (array_key_exists($name, $commands)) {
+                throw ConfigurationException::multipleCommandDefinitionsException($name);
+            }
+
             // Check if class is set (null counts as unset).
             if (!isset($values['class'])) {
                 throw ConfigurationException::configurationAttributeNotFoundException($filename, $name, 'class');
             }
             $class = $values['class'];
-
-            // Override command name if defined.
-            $name = isset($values['name']) ? $values['name'] : $name;
             $command = $this->instantiateClass($class, array($name));
 
             // Check if correct class.
@@ -330,8 +349,11 @@ class Container extends \Pimple\Container
             if (isset($values['description'])) {
                 $command->setDescription($values['description']);
             }
+            $commands[$name] = $command;
+        }
 
-            // Register the command.
+        // Register the command.
+        foreach ($commands as $name => $command) {
             $commandBag->set($name, $command);
         }
     }
