@@ -25,7 +25,7 @@ class FileLoader implements FileLoaderInterface
     /**
      * @const string
      */
-    const PLACEHOLDER_REGEX = '/(?<=^%)\w+(?=%$)/';
+    const PLACEHOLDER_REGEX = '/(?<=^%)[\w-\.]+(?=%$)/';
 
     /*------------------------------------------------------------------------*\
     | Public methods                                                           |
